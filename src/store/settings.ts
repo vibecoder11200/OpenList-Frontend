@@ -31,8 +31,8 @@ export const getSettingNumber = (key: string, defaultV?: number) => {
   return defaultV ?? 0
 }
 export const getMainColor = (): string => {
-  if (window.OPENLIST_CONFIG.main_color) {
-    return window.OPENLIST_CONFIG.main_color
+  if (window.APP_CONFIG.main_color) {
+    return window.APP_CONFIG.main_color
   }
   return getSetting("main_color") || "#1890ff"
 }
