@@ -1,7 +1,6 @@
 import { useFetch, useRouter, useT, useUtil } from "~/hooks"
 import {
   bus,
-  getExpireDate,
   handleResp,
   makeTemplateData,
   matchTemplate,
@@ -36,8 +35,16 @@ import {
 } from "~/types"
 import { createStore } from "solid-js/store"
 import { getSetting, me, selectedObjs } from "~/store"
-import { TbRefresh } from "solid-icons/tb"
+import { TbRefresh, TbX } from "solid-icons/tb"
 import { SelectOptions, MultiPathInput } from "~/components"
+
+const localDatetimeNow = () => {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
 
 export const Share = () => {
   const t = useT()
@@ -78,6 +85,21 @@ export const Share = () => {
   const { copy } = useUtil()
   const [expireString, setExpireString] = createSignal("")
   const [expireValid, setExpireValid] = createSignal(true)
+  const handleExpireChange = (value: string) => {
+    setExpireString(value)
+    if (value === "") {
+      setExpireValid(true)
+      setShare("expires", null)
+      return
+    }
+    const date = new Date(value)
+    if (isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      setExpireValid(false)
+    } else {
+      setExpireValid(true)
+      setShare("expires", date.toISOString())
+    }
+  }
   const [share, setShare] = createStore<ShareType>({} as ShareType)
   const [okLoading, ok] = useFetch((): PResp<ShareInfo> => {
     return r.post(`/share/create`, share)
@@ -231,27 +253,28 @@ export const Share = () => {
                   }}
                 />
                 <Text size="sm">{t("shares.expires")}</Text>
-                <Input
-                  size="sm"
-                  invalid={!expireValid()}
-                  value={expireString()}
-                  placeholder="yyyy-MM-dd HH:mm:ss or +1w1d1H1m1s1ms"
-                  onInput={(e) => {
-                    setExpireString(e.currentTarget.value)
-                    if (e.currentTarget.value === "") {
-                      setExpireValid(true)
-                      setShare("expires", null)
-                      return
-                    }
-                    const date = getExpireDate(e.currentTarget.value)
-                    if (isNaN(date.getTime())) {
-                      setExpireValid(false)
-                    } else {
-                      setExpireValid(true)
-                      setShare("expires", date.toISOString())
-                    }
-                  }}
-                />
+                <HStack spacing="$1" w="$full">
+                  <Input
+                    type="datetime-local"
+                    size="sm"
+                    step="1"
+                    min={localDatetimeNow()}
+                    value={expireString()}
+                    invalid={!expireValid()}
+                    onInput={(e) => {
+                      handleExpireChange(e.currentTarget.value)
+                    }}
+                  />
+                  <IconButton
+                    colorScheme="neutral"
+                    size="sm"
+                    aria-label={t("global.clear")}
+                    icon={<TbX />}
+                    onClick={() => {
+                      handleExpireChange("")
+                    }}
+                  />
+                </HStack>
                 <Text size="sm">{t("shares.readme")}</Text>
                 <Textarea
                   size="sm"

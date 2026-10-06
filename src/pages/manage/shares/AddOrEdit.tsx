@@ -1,13 +1,31 @@
 import { useFetch, useRouter, useT } from "~/hooks"
 import { PResp, Share, ShareInfo, ShareUpdate, Type } from "~/types"
-import { handleResp, notify, r, randomPwd, getExpireDate } from "~/utils"
+import { handleResp, notify, r, randomPwd } from "~/utils"
 import { createStore } from "solid-js/store"
-import { Button, Heading } from "@hope-ui/solid"
+import {
+  Button,
+  Heading,
+  HStack,
+  IconButton,
+  Input,
+  Text,
+} from "@hope-ui/solid"
 import { MaybeLoading } from "~/components"
 import { ResponsiveGrid } from "../common/ResponsiveGrid"
 import { batch, createSignal, Show } from "solid-js"
+import { TbX } from "solid-icons/tb"
 import { Item } from "./Item"
 import { me } from "~/store"
+
+const pad2 = (n: number) => String(n).padStart(2, "0")
+
+const toLocalDatetime = (d: Date) => {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(
+    d.getHours(),
+  )}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
+}
+
+const localDatetimeNow = () => toLocalDatetime(new Date())
 
 const AddOrEdit = () => {
   const t = useT()
@@ -22,6 +40,21 @@ const AddOrEdit = () => {
   const [filesValid, setFilesValid] = createSignal(false)
   const [expireString, setExpireString] = createSignal("")
   const [expireValid, setExpireValid] = createSignal(true)
+  const handleExpireChange = (value: string) => {
+    setExpireString(value)
+    if (value === "") {
+      setExpireValid(true)
+      setShare("expires", null)
+      return
+    }
+    const date = new Date(value)
+    if (isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      setExpireValid(false)
+    } else {
+      setExpireValid(true)
+      setShare("expires", date.toISOString())
+    }
+  }
   const initEdit = async () => {
     const shareResp = await loadShare()
     handleResp(shareResp, (shareData) => {
@@ -29,7 +62,7 @@ const AddOrEdit = () => {
         setShare(shareData as ShareUpdate)
         setFiles(shareData.files.join("\n"))
         if (shareData.expires) {
-          setExpireString(new Date(shareData.expires).toLocaleString())
+          setExpireString(toLocalDatetime(new Date(shareData.expires)))
         }
         setFilesValid(true)
       })
@@ -141,28 +174,31 @@ const AddOrEdit = () => {
             }}
           />
         </Show>
-        <Item
-          name="expires"
-          type={Type.String}
-          value={expireString()}
-          valid={expireValid()}
-          placeholder="yyyy-MM-dd HH:mm:ss or +1w1d1H1m1s1ms"
-          onChange={(e) => {
-            setExpireString(e)
-            if (e === "") {
-              setExpireValid(true)
-              setShare("expires", null)
-              return
-            }
-            const date = getExpireDate(e)
-            if (isNaN(date.getTime())) {
-              setExpireValid(false)
-            } else {
-              setExpireValid(true)
-              setShare("expires", date.toISOString())
-            }
-          }}
-        />
+        <Text size="sm" mb="$1">
+          {t("shares.expires")}
+        </Text>
+        <HStack spacing="$1" w="$full" mb="$2">
+          <Input
+            type="datetime-local"
+            size="sm"
+            step="1"
+            min={localDatetimeNow()}
+            value={expireString()}
+            invalid={!expireValid()}
+            onInput={(e) => {
+              handleExpireChange(e.currentTarget.value)
+            }}
+          />
+          <IconButton
+            colorScheme="neutral"
+            size="sm"
+            aria-label={t("global.clear")}
+            icon={<TbX />}
+            onClick={() => {
+              handleExpireChange("")
+            }}
+          />
+        </HStack>
         <Item
           name="readme"
           type={Type.Text}
