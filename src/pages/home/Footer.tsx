@@ -10,14 +10,19 @@ export const Footer = () => {
   const poweredByVisible = getSetting("powered_by_visible") !== "false"
   const poweredByText =
     getSetting("powered_by_text") || t("home.footer.powered_by")
+  const poweredByLink = getSetting("powered_by_link")
   return (
     <VStack class="footer" w="$full" py="$4">
       <HStack spacing="$1">
         {poweredByVisible && (
           <>
-            <Anchor href="https://github.com/OpenListTeam/OpenList" external>
-              {poweredByText}
-            </Anchor>
+            {poweredByLink ? (
+              <Anchor href={poweredByLink} external>
+                {poweredByText}
+              </Anchor>
+            ) : (
+              <span>{poweredByText}</span>
+            )}
             <span>|</span>
           </>
         )}
